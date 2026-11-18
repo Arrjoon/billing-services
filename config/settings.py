@@ -97,6 +97,19 @@ REST_FRAMEWORK = {
 
 CELERY_BROKER_URL = os.environ.get("CELERY_BROKER_URL", "redis://localhost:6379/0")
 CELERY_TASK_ALWAYS_EAGER = os.environ.get("CELERY_TASK_ALWAYS_EAGER") == "1"
+CELERY_TIMEZONE = TIME_ZONE
+CELERY_BEAT_SCHEDULE = {
+    "send-overdue-payment-reminders-hourly": {
+        "task": "billing.tasks.send_overdue_payment_reminders",
+        "schedule": 3600.0,  # every hour; quiet-hours guard skips night sends
+    },
+}
+
+# Payment reminder policy (Asia/Kathmandu local time via TIME_ZONE)
+REMINDER_QUIET_HOURS_START = int(os.environ.get("REMINDER_QUIET_HOURS_START", "21"))  # 21:00
+REMINDER_QUIET_HOURS_END = int(os.environ.get("REMINDER_QUIET_HOURS_END", "8"))  # 08:00
+REMINDER_COOLDOWN_HOURS = int(os.environ.get("REMINDER_COOLDOWN_HOURS", "24"))
+REMINDER_MAX_PER_CUSTOMER_PER_DAY = int(os.environ.get("REMINDER_MAX_PER_CUSTOMER_PER_DAY", "1"))
 
 EMAIL_BACKEND = os.environ.get(
     "EMAIL_BACKEND", "django.core.mail.backends.console.EmailBackend"

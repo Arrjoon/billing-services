@@ -156,3 +156,36 @@ class SalesReturnItem(models.Model):
     def __str__(self):
         return f"{self.product} x {self.quantity}"
 
+
+class PaymentReminder(models.Model):
+    """Audit log of overdue payment SMS reminders sent to customers."""
+
+    class Status(models.TextChoices):
+        SENT = "sent", "Sent"
+        FAILED = "failed", "Failed"
+
+    business = models.ForeignKey(
+        Business, on_delete=models.CASCADE, related_name="payment_reminders"
+    )
+    invoice = models.ForeignKey(
+        Invoice, on_delete=models.CASCADE, related_name="payment_reminders"
+    )
+    customer = models.ForeignKey(
+        Customer, on_delete=models.CASCADE, related_name="payment_reminders"
+    )
+    phone = models.CharField(max_length=20)
+    message = models.TextField()
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.SENT)
+    error = models.TextField(blank=True)
+    sent_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-sent_at"]
+        indexes = [
+            models.Index(fields=["invoice", "-sent_at"]),
+            models.Index(fields=["phone", "-sent_at"]),
+            models.Index(fields=["business", "-sent_at"]),
+        ]
+
+    def __str__(self):
+        return f"Reminder {self.status} for INV-{self.invoice.number} → {self.phone}"

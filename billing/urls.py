@@ -7,6 +7,8 @@ from .views import (
     InvoiceViewSet,
     OutstandingCustomersView,
     ProductViewSet,
+    ReminderRunView,
+    ReminderSettingsView,
     SalesReportView,
 )
 
@@ -19,4 +21,6 @@ urlpatterns = router.urls + [
     path("reports/sales/", SalesReportView.as_view(), name="sales-report"),
     path("reports/outstanding/", OutstandingCustomersView.as_view(), name="outstanding-customers"),
     path("webhooks/paygate/", GatewayWebhookView.as_view(), name="paygate-webhook"),
+    path("reminders/settings/", ReminderSettingsView.as_view(), name="reminder-settings"),
+    path("reminders/run/", ReminderRunView.as_view(), name="reminder-run"),
 ]

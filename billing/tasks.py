@@ -60,3 +60,20 @@ def process_gateway_payment(self, payload):
             invoice.customer.phone,
             f"Payment of Rs. {amount} received for invoice #{invoice.number}. Thank you!",
         )
+
+
+@shared_task
+def send_overdue_payment_reminders():
+    """Periodic job: SMS customers about overdue invoices (respects quiet hours / limits)."""
+    from .reminders import run_payment_reminders
+
+    summary = run_payment_reminders(dry_run=False)
+    logger.info(
+        "Payment reminders run: considered=%s sent=%s skipped=%s failed=%s quiet_hours=%s",
+        summary.considered,
+        summary.sent,
+        summary.skipped,
+        summary.failed,
+        summary.quiet_hours,
+    )
+    return summary.as_dict()

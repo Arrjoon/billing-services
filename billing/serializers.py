@@ -1,6 +1,15 @@
 from rest_framework import serializers
 
-from .models import Customer, Invoice, InvoiceItem, Payment, Product, SalesReturn, SalesReturnItem
+from .models import (
+    Customer,
+    Invoice,
+    InvoiceItem,
+    Payment,
+    PaymentReminder,
+    Product,
+    SalesReturn,
+    SalesReturnItem,
+)
 
 
 class CustomerSerializer(serializers.ModelSerializer):
@@ -121,3 +130,28 @@ class SalesReturnSerializer(serializers.ModelSerializer):
 
     def get_document_number(self, obj):
         return f"RET-{obj.number}"
+
+
+class PaymentReminderSerializer(serializers.ModelSerializer):
+    invoice_number = serializers.IntegerField(source="invoice.number", read_only=True)
+    customer_name = serializers.CharField(source="customer.name", read_only=True)
+
+    class Meta:
+        model = PaymentReminder
+        fields = [
+            "id",
+            "invoice",
+            "invoice_number",
+            "customer",
+            "customer_name",
+            "phone",
+            "message",
+            "status",
+            "error",
+            "sent_at",
+        ]
+        read_only_fields = fields
+
+
+class ReminderRunSerializer(serializers.Serializer):
+    dry_run = serializers.BooleanField(required=False, default=False)

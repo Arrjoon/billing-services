@@ -13,13 +13,16 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from .exceptions import InsufficientStock, InvalidReturn
-from .models import Customer, Invoice, Product, SalesReturn
+from .models import Customer, Invoice, PaymentReminder, Product, SalesReturn
+from .reminders import reminder_settings, run_payment_reminders
 from .serializers import (
     CustomerSerializer,
     InvoiceCreateSerializer,
     InvoiceSerializer,
     PaymentCreateSerializer,
+    PaymentReminderSerializer,
     ProductSerializer,
+    ReminderRunSerializer,
     ReturnCreateSerializer,
     SalesReturnSerializer,
 )
@@ -146,6 +149,33 @@ class InvoiceViewSet(viewsets.ModelViewSet):
             },
             status=status.HTTP_201_CREATED,
         )
+
+    @action(detail=True, methods=["get"], url_path="reminders")
+    def reminders(self, request, pk=None):
+        invoice = self.get_object()
+        queryset = PaymentReminder.objects.filter(invoice=invoice).select_related(
+            "customer", "invoice"
+        )
+        return Response(PaymentReminderSerializer(queryset, many=True).data)
+
+
+class ReminderSettingsView(APIView):
+    def get(self, request):
+        return Response(reminder_settings())
+
+
+class ReminderRunView(APIView):
+    """Manually trigger overdue SMS reminders for the caller's business."""
+
+    def post(self, request):
+        serializer = ReminderRunSerializer(data=request.data or {})
+        serializer.is_valid(raise_exception=True)
+        dry_run = serializer.validated_data.get("dry_run", False)
+        business = current_business(request)
+        summary = run_payment_reminders(dry_run=dry_run, business=business)
+        payload = summary.as_dict()
+        payload["business_id"] = business.id
+        return Response(payload)
 
 
 class SalesReportView(APIView):

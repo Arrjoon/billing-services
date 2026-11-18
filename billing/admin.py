@@ -6,6 +6,7 @@ from .models import (
     Invoice,
     InvoiceItem,
     Payment,
+    PaymentReminder,
     Product,
     SalesReturn,
     SalesReturnItem,
@@ -46,6 +47,22 @@ class SalesReturnAdmin(admin.ModelAdmin):
         "refund_amount",
         "created_by",
         "created_at",
+    )
+
+
+@admin.register(PaymentReminder)
+class PaymentReminderAdmin(admin.ModelAdmin):
+    list_display = ("invoice", "customer", "phone", "status", "sent_at", "business")
+    list_filter = ("status", "business")
+    readonly_fields = (
+        "business",
+        "invoice",
+        "customer",
+        "phone",
+        "message",
+        "status",
+        "error",
+        "sent_at",
     )
 
 
