@@ -112,3 +112,47 @@ class Payment(models.Model):
 
     def __str__(self):
         return f"{self.amount} for {self.invoice}"
+
+
+class SalesReturn(models.Model):
+    """Credit-note document for goods returned against an invoice."""
+
+    business = models.ForeignKey(Business, on_delete=models.CASCADE, related_name="sales_returns")
+    invoice = models.ForeignKey(Invoice, on_delete=models.PROTECT, related_name="sales_returns")
+    number = models.PositiveIntegerField()
+    reason = models.CharField(max_length=255, blank=True)
+    subtotal = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    tax = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    total = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    refund_amount = models.DecimalField(
+        max_digits=14,
+        decimal_places=2,
+        default=0,
+        help_text="Amount owed back to the customer when returns exceed unpaid balance.",
+    )
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        unique_together = ("business", "number")
+
+    def __str__(self):
+        return f"RET-{self.number}"
+
+
+class SalesReturnItem(models.Model):
+    sales_return = models.ForeignKey(SalesReturn, on_delete=models.CASCADE, related_name="items")
+    invoice_item = models.ForeignKey(
+        InvoiceItem, on_delete=models.PROTECT, related_name="return_items"
+    )
+    product = models.ForeignKey(Product, on_delete=models.PROTECT)
+    quantity = models.PositiveIntegerField()
+    unit_price = models.DecimalField(max_digits=12, decimal_places=2)
+    line_total = models.DecimalField(max_digits=14, decimal_places=2)
+
+    def __str__(self):
+        return f"{self.product} x {self.quantity}"
+

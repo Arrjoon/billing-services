@@ -1,7 +1,8 @@
 # Billing service
 
 A small Django REST Framework service for shops: customers, products with stock,
-invoices with 13% VAT, payments (cash, bank, online gateway), and two reports.
+invoices with 13% VAT, payments (cash, bank, online gateway), sales returns,
+and two reports.
 Each staff user belongs to one business, and every business sees only its own data.
 
 ## Setup
@@ -53,6 +54,7 @@ the worker. Rebuild with `docker compose up --build` after changing
 | GET, PATCH | `/api/invoices/{id}/` | View or edit an invoice |
 | POST | `/api/invoices/{id}/payments/` | Record a payment |
 | POST | `/api/invoices/{id}/cancel/` | Cancel an invoice and restock |
+| GET, POST | `/api/invoices/{id}/returns/` | List or create a sales return (credit note) |
 | GET | `/api/reports/sales/?from=2026-11-01&to=2026-11-30` | Sales summary |
 | GET | `/api/reports/outstanding/?q=ram` | Customers with unpaid balances |
 | POST | `/api/webhooks/paygate/` | Payment gateway webhook |

@@ -12,16 +12,18 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from .exceptions import InsufficientStock
-from .models import Customer, Invoice, Product
+from .exceptions import InsufficientStock, InvalidReturn
+from .models import Customer, Invoice, Product, SalesReturn
 from .serializers import (
     CustomerSerializer,
     InvoiceCreateSerializer,
     InvoiceSerializer,
     PaymentCreateSerializer,
     ProductSerializer,
+    ReturnCreateSerializer,
+    SalesReturnSerializer,
 )
-from .services import cancel_invoice, create_invoice, record_payment
+from .services import cancel_invoice, create_invoice, create_return, record_payment
 from .tasks import process_gateway_payment
 
 
@@ -112,6 +114,38 @@ class InvoiceViewSet(viewsets.ModelViewSet):
 
         cancel_invoice(invoice)
         return Response(InvoiceSerializer(invoice).data)
+
+    @action(detail=True, methods=["get", "post"], url_path="returns")
+    def returns(self, request, pk=None):
+        invoice = self.get_object()
+
+        if request.method == "GET":
+            queryset = SalesReturn.objects.filter(invoice=invoice).prefetch_related(
+                "items", "items__product"
+            )
+            return Response(SalesReturnSerializer(queryset, many=True).data)
+
+        serializer = ReturnCreateSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        try:
+            sales_return = create_return(
+                invoice=invoice,
+                items=serializer.validated_data["items"],
+                user=request.user,
+                reason=serializer.validated_data.get("reason", ""),
+            )
+        except InvalidReturn as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+
+        invoice.refresh_from_db()
+        return Response(
+            {
+                "return": SalesReturnSerializer(sales_return).data,
+                "invoice": InvoiceSerializer(invoice).data,
+            },
+            status=status.HTTP_201_CREATED,
+        )
 
 
 class SalesReportView(APIView):
